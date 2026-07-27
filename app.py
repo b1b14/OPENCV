@@ -3,6 +3,9 @@ from __future__ import annotations
 import cv2
 
 from camera.droidcam import DroidCamCamera, DroidCamConfig
+from detector.detector_factory import DetectorFactory
+from services.detection_service import DetectionService
+from ui.drawing import Drawing
 from config import get_settings
 from utils.logger import configurar_logger
 
@@ -11,6 +14,9 @@ def executar_aplicacao() -> None:
     settings = get_settings()
     logger = configurar_logger(settings.log_level)
     camera = DroidCamCamera(DroidCamConfig(source=settings.camera_source))
+    detector = DetectorFactory.criar_detector_de_pessoas()
+    detection_service = DetectionService(detector)
+    drawing = Drawing()
 
     logger.info("%s iniciado com sucesso", settings.app_name)
     logger.info("Versão: %s", settings.app_version)
@@ -25,7 +31,10 @@ def executar_aplicacao() -> None:
                 logger.warning("Falha ao ler frame da câmera")
                 continue
 
-            cv2.imshow("PeopleDetectionAI - Captura de vídeo", frame)
+            detections = detection_service.processar(frame)
+            frame_com_deteccoes = drawing.desenhar_deteccoes(frame, detections)
+
+            cv2.imshow("PeopleDetectionAI - Captura e Detecção", frame_com_deteccoes)
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
